@@ -1,0 +1,21 @@
+{
+  "name": "@jayobado/vue-ui",
+  "version": "0.1.0",
+
+  "exports": {
+    ".": "./mod.ts"
+  },
+
+  "imports": {
+    "vue": "https://esm.sh/vue@latest?dev"
+  },
+
+  "tasks": {
+    "check": "deno check mod.ts"
+  },
+
+  "compilerOptions": {
+    "strict": true,
+    "lib": ["ESNext", "DOM"]
+  }
+}

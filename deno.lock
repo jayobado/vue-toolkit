@@ -1,0 +1,9 @@
+{
+  "version": "5",
+  "redirects": {
+    "https://esm.sh/vue@latest?dev": "https://esm.sh/vue@3.5.30?dev"
+  },
+  "remote": {
+    "https://esm.sh/vue@3.5.30?dev": "08f150d0772e19a4baec2b6878433b9f1388951a599102c88e856f34296c0c70"
+  }
+}
