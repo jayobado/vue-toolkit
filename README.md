@@ -1,4 +1,4 @@
-# vue-ui
+# vue-tools
 
 A lightweight Vue 3 runtime library for building UIs in pure TypeScript. Write components using typed element factories and `createVNode` — no templates, no JSX, no build step required.
 
