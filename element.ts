@@ -4,7 +4,7 @@ type Child = VNode | string | number | null | undefined | false
 type Children = Child | Child[] | VNodeArrayChildren
 
 export interface ElProps {
-	[key: string]: unknown 
+	[key: string]: unknown
 	class?: string; id?: string; style?: string; role?: string
 	tabIndex?: number; title?: string; key?: string | number
 	'aria-label'?: string; 'aria-hidden'?: boolean | 'true' | 'false'
@@ -36,47 +36,56 @@ export interface AnchorElProps extends ElProps {
 	href?: string; target?: string; rel?: string
 }
 
-const _h = (tag: string) =>
+// ─── Element factory type ─────────────────────────────────────────────────────
+// Explicit alias so JSR can resolve the type of every _h() export
+
+type El = (props?: ElProps | null, children?: Children) => VNode
+
+const _h = (tag: string): El =>
 	(props?: ElProps | null, children?: Children): VNode =>
 		createVNode(tag, props ?? null, children ?? null)
 
-// Layout
-export const div = _h('div')
-export const section = _h('section')
-export const article = _h('article')
-export const aside = _h('aside')
-export const header = _h('header')
-export const footer = _h('footer')
-export const main = _h('main')
-export const nav = _h('nav')
+// ─── Layout ───────────────────────────────────────────────────────────────────
 
-// Text
-export const span = _h('span')
-export const p = _h('p')
-export const h1 = _h('h1')
-export const h2 = _h('h2')
-export const h3 = _h('h3')
-export const h4 = _h('h4')
-export const h5 = _h('h5')
-export const h6 = _h('h6')
-export const em = _h('em')
-export const strong = _h('strong')
-export const small = _h('small')
-export const code = _h('code')
-export const pre = _h('pre')
+export const div: El = _h('div')
+export const section: El = _h('section')
+export const article: El = _h('article')
+export const aside: El = _h('aside')
+export const header: El = _h('header')
+export const footer: El = _h('footer')
+export const main: El = _h('main')
+export const nav: El = _h('nav')
 
-// Lists
-export const ul = _h('ul')
-export const ol = _h('ol')
-export const li = _h('li')
+// ─── Text ─────────────────────────────────────────────────────────────────────
 
-// Form
+export const span: El = _h('span')
+export const p: El = _h('p')
+export const h1: El = _h('h1')
+export const h2: El = _h('h2')
+export const h3: El = _h('h3')
+export const h4: El = _h('h4')
+export const h5: El = _h('h5')
+export const h6: El = _h('h6')
+export const em: El = _h('em')
+export const strong: El = _h('strong')
+export const small: El = _h('small')
+export const code: El = _h('code')
+export const pre: El = _h('pre')
+
+// ─── Lists ────────────────────────────────────────────────────────────────────
+
+export const ul: El = _h('ul')
+export const ol: El = _h('ol')
+export const li: El = _h('li')
+
+// ─── Form ─────────────────────────────────────────────────────────────────────
+
 export const form = (
 	props?: (ElProps & { action?: string; method?: string; enctype?: string }) | null,
 	children?: Children
 ): VNode => createVNode('form', props ?? null, children ?? null)
 
-export const fieldset = _h('fieldset')
+export const fieldset: El = _h('fieldset')
 
 export const label = (
 	props?: (ElProps & { for?: string }) | null,
@@ -89,7 +98,7 @@ export const input = (props?: InputElProps | null): VNode =>
 export const button = (props?: ButtonElProps | null, children?: Children): VNode =>
 	createVNode('button', props ?? null, children ?? null)
 
-export const select = _h('select')
+export const select: El = _h('select')
 
 export const textarea = (
 	props?: (ElProps & { rows?: number; placeholder?: string }) | null
@@ -100,7 +109,8 @@ export const option = (
 	children?: Children
 ): VNode => createVNode('option', props ?? null, children ?? null)
 
-// Media / navigation
+// ─── Media / navigation ───────────────────────────────────────────────────────
+
 export const img = (
 	props?: (ElProps & { src?: string; alt?: string; loading?: string }) | null
 ): VNode => createVNode('img', props ?? null)
@@ -113,11 +123,12 @@ export const hr = (props?: ElProps | null): VNode =>
 
 export const br = (): VNode => createVNode('br', null)
 
-// Table
-export const table = _h('table')
-export const thead = _h('thead')
-export const tbody = _h('tbody')
-export const tr = _h('tr')
+// ─── Table ────────────────────────────────────────────────────────────────────
+
+export const table: El = _h('table')
+export const thead: El = _h('thead')
+export const tbody: El = _h('tbody')
+export const tr: El = _h('tr')
 
 export const th = (
 	props?: (ElProps & { scope?: string; colSpan?: number }) | null,
