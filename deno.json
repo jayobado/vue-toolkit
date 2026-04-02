@@ -1,6 +1,6 @@
 {
-  "name": "@jayobado/vue-ui-tools",
-  "version": "0.1.0",
+  "name": "@jayobado/vue-toolkit",
+  "version": "0.1.1",
   "license": "MIT",
   "exports": {
     ".": "./mod.ts"
