@@ -1,6 +1,7 @@
 {
   "version": "5",
   "specifiers": {
+    "npm:@standard-schema/spec@1": "1.1.0",
     "npm:vue@^3.5.13": "3.5.30"
   },
   "npm": {
@@ -26,6 +27,9 @@
     },
     "@jridgewell/sourcemap-codec@1.5.5": {
       "integrity": "sha512-cYQ9310grqxueWbl+WuIUIaiUaDcj7WOq5fVhEljNVgRfOUhY9fy2zTvfoqWsnebh8Sl70VScFbICvJnLKB0Og=="
+    },
+    "@standard-schema/spec@1.1.0": {
+      "integrity": "sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w=="
     },
     "@vue/compiler-core@3.5.30": {
       "integrity": "sha512-s3DfdZkcu/qExZ+td75015ljzHc6vE+30cFMGRPROYjqkroYI5NV2X1yAMX9UeyBNWB9MxCfPcsjpLS11nzkkw==",
@@ -150,6 +154,7 @@
   },
   "workspace": {
     "dependencies": [
+      "npm:@standard-schema/spec@1",
       "npm:vue@^3.5.13"
     ]
   }

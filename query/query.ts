@@ -143,7 +143,7 @@ function useCachedQuery<T>(
 		})
 	} catch { /* standalone */ }
 
-	function refetch(): Promise<void> {
+	function refetch(): void {
 		if (currentKey === null) return
 		const key = JSON.parse(currentKey)
 		invalidateCache(key)
