@@ -1,9 +1,12 @@
-import { ref, toValue, watchEffect } from 'vue'
+import { ref, toValue, watchEffect, onScopeDispose } from 'vue'
 import type { MaybeRefOrGetter, Ref, WatchOptionsBase } from 'vue'
+import { getOrCreate, release, invalidate as invalidateCache } from './cache.ts'
+import type { CacheOptions } from './cache.ts'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export interface QueryOptions {
+export interface QueryOptions extends CacheOptions {
+	key?: MaybeRefOrGetter<unknown[]>
 	enabled?: MaybeRefOrGetter<boolean>
 	retry?: number
 	retryDelay?: number
@@ -14,22 +17,48 @@ export interface QueryReturn<T> {
 	data: Ref<T | undefined>
 	error: Ref<Error | undefined>
 	loading: Ref<boolean>
-	refetch: () => Promise<void>
+	refetch: () => void | Promise<void>
+	invalidate: () => void
 }
 
-// ─── Implementation ──────────────────────────────────────────────────────────
+// ─── Retry wrapper ───────────────────────────────────────────────────────────
 
-export function useQuery<T>(
+function wrapWithRetry<T>(
 	fn: () => Promise<T>,
-	options?: QueryOptions,
+	opts: { retry?: number; retryDelay?: number; onError?: (err: Error) => void },
+): () => Promise<T> {
+	const maxRetries = opts.retry ?? 0
+	const retryDelay = opts.retryDelay ?? 1000
+
+	return async () => {
+		let attempt = 0
+		while (true) {
+			try {
+				return await fn()
+			} catch (err) {
+				const e = err instanceof Error ? err : new Error(String(err))
+				if (attempt < maxRetries) {
+					attempt++
+					await new Promise(r => setTimeout(r, retryDelay))
+					continue
+				}
+				opts.onError?.(e)
+				throw e
+			}
+		}
+	}
+}
+
+// ─── Uncached query (no key provided) ────────────────────────────────────────
+
+function useUncachedQuery<T>(
+	fn: () => Promise<T>,
+	opts: QueryOptions,
 	watchOptions?: WatchOptionsBase,
 ): QueryReturn<T> {
 	const data = ref<T>() as Ref<T | undefined>
-	const error = ref<Error>()
+	const error = ref<Error>() as Ref<Error | undefined>
 	const loading = ref(false)
-
-	const maxRetries = options?.retry ?? 0
-	const retryDelay = options?.retryDelay ?? 1000
 
 	let generation = 0
 
@@ -38,41 +67,110 @@ export function useQuery<T>(
 		error.value = undefined
 		loading.value = true
 
-		let attempt = 0
-		while (true) {
-			try {
-				const result = await fn()
-				if (current !== generation) return
-				data.value = result
-				error.value = undefined
-				break
-			} catch (err) {
-				if (current !== generation) return
-				const e = err instanceof Error ? err : new Error(String(err))
-				if (attempt < maxRetries) {
-					attempt++
-					await new Promise(r => setTimeout(r, retryDelay))
-					if (current !== generation) return
-					continue
-				}
-				error.value = e
-				options?.onError?.(e)
-				break
-			}
+		const wrapped = wrapWithRetry(fn, opts)
+		try {
+			const result = await wrapped()
+			if (current !== generation) return
+			data.value = result
+			error.value = undefined
+		} catch (err) {
+			if (current !== generation) return
+			error.value = err instanceof Error ? err : new Error(String(err))
 		}
 
-		if (current === generation) {
-			loading.value = false
-		}
+		if (current === generation) loading.value = false
 	}
 
 	watchEffect(() => {
-		const enabled = options?.enabled !== undefined
-			? toValue(options.enabled)
-			: true
+		const enabled = opts.enabled !== undefined ? toValue(opts.enabled) : true
 		if (!enabled) return
 		execute()
 	}, watchOptions)
 
-	return { data, error, loading, refetch: execute }
+	return {
+		data, error, loading,
+		refetch: execute,
+		invalidate: () => { },
+	}
+}
+
+// ─── Cached query (key provided) ─────────────────────────────────────────────
+
+function useCachedQuery<T>(
+	fn: () => Promise<T>,
+	opts: QueryOptions & { key: MaybeRefOrGetter<unknown[]> },
+	watchOptions?: WatchOptionsBase,
+): QueryReturn<T> {
+	const data = ref<T>() as Ref<T | undefined>
+	const error = ref<Error>() as Ref<Error | undefined>
+	const loading = ref(false)
+
+	let currentKey: string | null = null
+	let stopSync: (() => void) | undefined
+
+	function bind(key: unknown[]): () => void {
+		if (currentKey !== null) {
+			release(JSON.parse(currentKey), opts.gcTime)
+		}
+
+		const entry = getOrCreate<T>(key, wrapWithRetry(fn, opts), opts)
+		currentKey = JSON.stringify(key)
+
+		const stop = watchEffect(() => {
+			data.value = entry.data.value
+			error.value = entry.error.value
+			loading.value = entry.loading.value
+		})
+
+		return stop
+	}
+
+	watchEffect(() => {
+		const enabled = opts.enabled !== undefined ? toValue(opts.enabled) : true
+		if (!enabled) return
+
+		const key = toValue(opts.key)
+		stopSync?.()
+		stopSync = bind(key)
+	}, watchOptions)
+
+	try {
+		onScopeDispose(() => {
+			stopSync?.()
+			if (currentKey !== null) {
+				release(JSON.parse(currentKey), opts.gcTime)
+			}
+		})
+	} catch { /* standalone */ }
+
+	function refetch(): Promise<void> {
+		if (currentKey === null) return
+		const key = JSON.parse(currentKey)
+		invalidateCache(key)
+		stopSync?.()
+		stopSync = bind(key)
+	}
+
+	function invalidate(): void {
+		if (currentKey === null) return
+		invalidateCache(JSON.parse(currentKey))
+	}
+
+	return { data, error, loading, refetch, invalidate }
+}
+
+// ─── Public API ──────────────────────────────────────────────────────────────
+
+export function useQuery<T>(
+	fn: () => Promise<T>,
+	options?: QueryOptions,
+	watchOptions?: WatchOptionsBase,
+): QueryReturn<T> {
+	const opts = options ?? {}
+
+	if (opts.key !== undefined) {
+		return useCachedQuery(fn, opts as QueryOptions & { key: MaybeRefOrGetter<unknown[]> }, watchOptions)
+	}
+
+	return useUncachedQuery(fn, opts, watchOptions)
 }

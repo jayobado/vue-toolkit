@@ -1,7 +1,5 @@
 import { ref, onScopeDispose } from 'vue'
 import type { Ref } from 'vue'
-import { css } from '../css.ts'
-import type { StyleObject } from '../css.ts'
 import { computePosition } from '../primitives/position.ts'
 import type { Placement } from '../primitives/position.ts'
 
@@ -12,7 +10,6 @@ export interface TooltipOptions {
 	showDelay?: number
 	hideDelay?: number
 	class?: string
-	styles?: StyleObject
 }
 
 export interface TooltipReturn {
@@ -41,10 +38,7 @@ export function useTooltip(
 	function create(): HTMLElement {
 		const el = document.createElement('div')
 		el.setAttribute('role', 'tooltip')
-		const classes: string[] = []
-		if (options.class) classes.push(options.class)
-		if (options.styles) classes.push(css(options.styles))
-		if (classes.length) el.className = classes.join(' ')
+		if (options.class) el.className = options.class
 		el.style.position = 'fixed'
 		el.style.pointerEvents = 'none'
 		el.textContent = text

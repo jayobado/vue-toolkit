@@ -1,30 +1,21 @@
 import { createVNode, type VNode, type VNodeArrayChildren } from 'vue'
-import { css } from '../css.ts'
-import type { StyleObject } from '../css.ts'
 
 export interface FormGroupProps {
 	class?: string
-	styles?: StyleObject
 	legend?: string
-	legendStyles?: StyleObject
+	legendClass?: string
 }
 
-export function FormGroup(
+export function formGroup(
 	props: FormGroupProps,
 	children: VNode | VNode[],
 ): VNode {
-	const classes: string[] = []
-	if (props.class) classes.push(props.class)
-	if (props.styles) classes.push(css(props.styles))
-
 	const fieldsetChildren: VNodeArrayChildren = []
 
 	if (props.legend) {
-		const legendClasses: string[] = []
-		if (props.legendStyles) legendClasses.push(css(props.legendStyles))
 		fieldsetChildren.push(
 			createVNode('legend', {
-				class: legendClasses.join(' ') || undefined,
+				class: props.legendClass || undefined,
 			}, props.legend)
 		)
 	}
@@ -34,6 +25,6 @@ export function FormGroup(
 	)
 
 	return createVNode('fieldset', {
-		class: classes.join(' ') || undefined,
+		class: props.class || undefined,
 	}, fieldsetChildren)
 }

@@ -1,11 +1,11 @@
 import { ref, onScopeDispose } from 'vue'
 import type { Ref } from 'vue'
-import { css } from '../css.ts'
-import type { StyleObject } from '../css.ts'
 import { useClickOutside } from '../primitives/click-outside.ts'
 import { useEscapeKey } from '../primitives/escape-key.ts'
 import { computePosition } from '../primitives/position.ts'
 import type { Placement } from '../primitives/position.ts'
+import { enter, leave } from '../primitives/transition.ts'
+import type { TransitionClasses } from '../primitives/transition.ts'
 
 export interface DropdownItem {
 	label: string
@@ -19,17 +19,16 @@ export interface DropdownOptions {
 	placement?: Placement
 	offset?: number
 	class?: string
-	styles?: StyleObject
 	itemClass?: string
-	itemStyles?: StyleObject
-	activeItemStyles?: StyleObject
-	disabledItemStyles?: StyleObject
+	activeItemClass?: string
+	disabledItemClass?: string
+	transition?: TransitionClasses
 	onSelect?: (item: DropdownItem) => void
 }
 
 export interface DropdownReturn {
 	open: () => void
-	close: () => void
+	close: () => Promise<void>
 	toggle: () => void
 	isOpen: Ref<boolean>
 	dispose: () => void
@@ -51,6 +50,7 @@ export function useDropdown(
 	let cleanups: Array<() => void> = []
 
 	const menuRef = ref<HTMLElement | null>(null)
+	const triggerRef = ref<HTMLElement | null>(trigger)
 
 	function getSelectableIndices(): number[] {
 		return items.reduce<number[]>((acc, item, i) => {
@@ -65,20 +65,16 @@ export function useDropdown(
 		children.forEach((child, i) => {
 			if (i === index) {
 				child.setAttribute('aria-selected', 'true')
-				if (options.activeItemStyles) {
-					child.className = [
-						options.itemClass ?? '',
-						options.itemStyles ? css(options.itemStyles) : '',
-						css(options.activeItemStyles),
-					].filter(Boolean).join(' ')
-				}
+				child.className = [
+					options.itemClass ?? '',
+					options.activeItemClass ?? '',
+				].filter(Boolean).join(' ')
 			} else {
 				child.removeAttribute('aria-selected')
 				const classes: string[] = []
 				if (options.itemClass) classes.push(options.itemClass)
-				if (options.itemStyles) classes.push(css(options.itemStyles))
-				if (items[i].disabled && options.disabledItemStyles) {
-					classes.push(css(options.disabledItemStyles))
+				if (items[i].disabled && options.disabledItemClass) {
+					classes.push(options.disabledItemClass)
 				}
 				child.className = classes.join(' ')
 			}
@@ -97,11 +93,7 @@ export function useDropdown(
 		const el = document.createElement('div')
 		el.setAttribute('role', 'listbox')
 		el.style.position = 'fixed'
-
-		const classes: string[] = []
-		if (options.class) classes.push(options.class)
-		if (options.styles) classes.push(css(options.styles))
-		if (classes.length) el.className = classes.join(' ')
+		if (options.class) el.className = options.class
 
 		items.forEach((item, i) => {
 			const row = document.createElement('div')
@@ -110,9 +102,8 @@ export function useDropdown(
 
 			const rowClasses: string[] = []
 			if (options.itemClass) rowClasses.push(options.itemClass)
-			if (options.itemStyles) rowClasses.push(css(options.itemStyles))
-			if (item.disabled && options.disabledItemStyles) {
-				rowClasses.push(css(options.disabledItemStyles))
+			if (item.disabled && options.disabledItemClass) {
+				rowClasses.push(options.disabledItemClass)
 			}
 			if (rowClasses.length) row.className = rowClasses.join(' ')
 
@@ -169,16 +160,22 @@ export function useDropdown(
 		menu.style.top = `${pos.top}px`
 		menu.style.left = `${pos.left}px`
 
-		cleanups.push(useClickOutside(menuRef, close))
-		cleanups.push(useEscapeKey(close))
+		if (options.transition) enter(menu, options.transition)
+
+		cleanups.push(useClickOutside(menuRef, () => { close() }, [triggerRef]))
+		cleanups.push(useEscapeKey(() => { close() }))
 		document.addEventListener('keydown', onKeydown)
 		cleanups.push(() => document.removeEventListener('keydown', onKeydown))
 	}
 
-	function close(): void {
+	async function close(): Promise<void> {
 		if (!isOpen.value) return
 		isOpen.value = false
 		activeIndex = -1
+
+		if (options.transition && menu) {
+			await leave(menu, options.transition)
+		}
 
 		cleanups.forEach(fn => fn())
 		cleanups = []

@@ -1,5 +1,5 @@
-import { css } from '../css.ts'
-import type { StyleObject } from '../css.ts'
+import { enter, leave } from '../primitives/transition.ts'
+import type { TransitionClasses } from '../primitives/transition.ts'
 
 export type ToastVariant = 'info' | 'success' | 'warning' | 'error'
 
@@ -7,14 +7,14 @@ export interface ToastOptions {
 	duration?: number
 	variant?: ToastVariant
 	class?: string
-	styles?: StyleObject
 	dismissible?: boolean
+	transition?: TransitionClasses
 }
 
 export interface ToasterOptions {
 	containerClass?: string
-	containerStyles?: StyleObject
-	variantStyles?: Partial<Record<ToastVariant, StyleObject>>
+	variantClass?: Partial<Record<ToastVariant, string>>
+	transition?: TransitionClasses
 }
 
 export interface Toaster {
@@ -22,17 +22,13 @@ export interface Toaster {
 	dispose: () => void
 }
 
-export function createToaster(options?: ToasterOptions): Toaster {
+export function useToaster(options?: ToasterOptions): Toaster {
 	const opts = options ?? {}
 
 	const container = document.createElement('div')
 	container.setAttribute('aria-live', 'polite')
 	container.setAttribute('role', 'status')
-
-	const containerClasses: string[] = []
-	if (opts.containerClass) containerClasses.push(opts.containerClass)
-	if (opts.containerStyles) containerClasses.push(css(opts.containerStyles))
-	if (containerClasses.length) container.className = containerClasses.join(' ')
+	if (opts.containerClass) container.className = opts.containerClass
 
 	document.body.appendChild(container)
 
@@ -43,16 +39,32 @@ export function createToaster(options?: ToasterOptions): Toaster {
 			dismissible = true,
 		} = toastOpts ?? {}
 
+		const transition = toastOpts?.transition ?? opts.transition
+
 		const toast = document.createElement('div')
 		toast.setAttribute('role', 'alert')
 
-		const toastClasses: string[] = []
-		if (toastOpts?.class) toastClasses.push(toastOpts.class)
-		if (toastOpts?.styles) toastClasses.push(css(toastOpts.styles))
-		if (opts.variantStyles?.[variant]) toastClasses.push(css(opts.variantStyles[variant]!))
-		if (toastClasses.length) toast.className = toastClasses.join(' ')
+		const classes: string[] = []
+		if (toastOpts?.class) classes.push(toastOpts.class)
+		if (opts.variantClass?.[variant]) classes.push(opts.variantClass[variant]!)
+		if (classes.length) toast.className = classes.join(' ')
 
 		toast.textContent = message
+
+		let timer: number | undefined
+		let removing = false
+
+		async function remove(): Promise<void> {
+			if (removing) return
+			removing = true
+			if (timer) clearTimeout(timer)
+			if (transition) {
+				await leave(toast, transition)
+			}
+			if (toast.parentNode === container) {
+				container.removeChild(toast)
+			}
+		}
 
 		if (dismissible) {
 			toast.style.cursor = 'pointer'
@@ -61,14 +73,7 @@ export function createToaster(options?: ToasterOptions): Toaster {
 
 		container.appendChild(toast)
 
-		let timer: number | undefined
-
-		function remove(): void {
-			if (timer) clearTimeout(timer)
-			if (toast.parentNode === container) {
-				container.removeChild(toast)
-			}
-		}
+		if (transition) enter(toast, transition)
 
 		if (duration > 0) {
 			timer = setTimeout(remove, duration) as unknown as number

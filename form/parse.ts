@@ -20,20 +20,20 @@ export interface ParseReturn<TSchema extends StandardSchemaV1, TErrors> {
 
 // ─── Implementation ──────────────────────────────────────────────────────────
 
-export function useParse<TSchema extends StandardSchemaV1, TErrors = StandardErrors> (
+export function useParse<TSchema extends StandardSchemaV1, TErrors = StandardErrors>(
 	options: ParseOptions<TSchema, TErrors>,
-	watchOptions ?: WatchOptionsBase,
-): ParseReturn < TSchema, TErrors > {
+	watchOptions?: WatchOptionsBase,
+): ParseReturn<TSchema, TErrors> {
 	type Output = StandardSchemaV1.InferOutput<TSchema>
-	
+
 	const result = ref() as Ref<StandardSchemaV1.Result<Output>>
 	const output = ref<Output>()
 	const errors = ref<TErrors>()
 	const formatErrors = options.formatErrors ?? ((issues: StandardErrors) => issues as TErrors)
-	
+
 	function apply(r: StandardSchemaV1.Result<Output>): void {
 		result.value = r
-		if(r.issues) {
+		if (r.issues) {
 			output.value = undefined
 			errors.value = formatErrors(r.issues)
 		} else {

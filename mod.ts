@@ -1,10 +1,4 @@
 export {
-	css, staticCss, collectStyles, resetStyles,
-	snapshotCounter, restoreCounter,
-} from './css.ts'
-export type { StyleObject, StyleProperties } from './css.ts'
-
-export {
 	defineFn, defineTS, h, withMemo, createMemoCache,
 	shallowRef, markRaw,
 } from './component.ts'

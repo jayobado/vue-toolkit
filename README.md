@@ -8,19 +8,36 @@ A lightweight Vue 3 runtime library for building UIs in pure TypeScript. Write c
 - **`defineFn`** — stateless functional components with typed props and a render function
 - **`defineTS`** — stateful components with `setup()`, reactive state, and lifecycle hooks
 - **`h()`** — typed component instantiation with prop inference
-- **`css()` / `staticCss()`** — atomic CSS-in-JS engine with pseudo-class and media query support, works isomorphically on server and client
 - **`withMemo` / `createMemoCache`** — fine-grained memoisation for expensive render subtrees
 - **Form handling** — submission and validation composables using any Standard Schema library (`@jayobado/vue-toolkit/form`)
-- **Data fetching** — `useQuery` and `useMutation` composables with reactive re-fetching and retry (`@jayobado/vue-toolkit/query`)
-- **Components** — unstyled `FormField`, `FormGroup`, and `DataTable` helpers (`@jayobado/vue-toolkit/components`)
-- **Interactive components** — unstyled `useModal`, `createToaster`, `useTooltip`, `useDropdown` (`@jayobado/vue-toolkit/components`)
-- **Primitives** — `useMediaQuery`, `useLocalStorage`, `useDebounce`, `useInterval`, `useEventListener`, `usePagination`, `useSelection`, `useClipboard`, `createPortal`, `useClickOutside`, `useEscapeKey`, `useFocusTrap`, `useScrollLock`, `computePosition` (`@jayobado/vue-toolkit/primitives`)
+- **Data fetching** — `useQuery` (with optional caching) and `useMutation` composables with reactive re-fetching and retry (`@jayobado/vue-toolkit/query`)
+- **Components** — unstyled `formField`, `formGroup`, and `dataTable` helpers (`@jayobado/vue-toolkit/components`)
+- **Interactive components** — unstyled `useModal`, `useToaster`, `useTooltip`, `useDropdown` with transition support (`@jayobado/vue-toolkit/components`)
+- **Primitives** — `useMediaQuery`, `useLocalStorage`, `useDebounce`, `useInterval`, `useEventListener`, `usePagination`, `useSelection`, `useClipboard`, `createPortal`, `useClickOutside`, `useEscapeKey`, `useFocusTrap`, `useScrollLock`, `computePosition`, `enter`, `leave` (`@jayobado/vue-toolkit/primitives`)
+
+## Styling
+
+vue-toolkit is style-agnostic. It does not include a CSS engine — use any styling approach you prefer: Tailwind, vanilla CSS, CSS modules, or [`@jayobado/css`](https://github.com/jayobado/css) for atomic CSS-in-JS. All components accept `class` strings; the consumer is responsible for generating them.
+
+```typescript
+// Example with @jayobado/css
+import { css } from '@jayobado/css'
+import { div } from '@jayobado/vue-toolkit'
+
+div({ class: css({ display: 'flex', gap: 16 }) }, 'Hello')
+
+// Example with Tailwind
+div({ class: 'flex gap-4' }, 'Hello')
+
+// Example with plain CSS
+div({ class: 'container' }, 'Hello')
+```
 
 ## What it is not
 
-- A full framework — it does not include a router, state manager, or data fetching layer
+- A full framework — it does not include a router, state manager, or CSS engine
 - A replacement for Vue's template compiler — it is an alternative authoring style for teams that prefer pure TypeScript
-- SSR-specific — the CSS engine is isomorphic but rendering itself uses Vue's standard `renderToString` and hydration APIs
+- SSR-specific — rendering uses Vue's standard `renderToString` and hydration APIs
 
 ## Requirements
 
@@ -42,51 +59,36 @@ A lightweight Vue 3 runtime library for building UIs in pure TypeScript. Write c
 
 ## Installation
 
-### Deno
+### Deno (JSR)
 
-Add to your project's `deno.json`:
-```json
-{
-  "imports": {
-    "@vue-toolkit": "https://raw.githubusercontent.com/jayobado/vue-toolkit/v0.1.0/mod.ts",
-    "vue":     "https://esm.sh/vue@3.5.13"
-  }
-}
-```
-
-Set your GitHub token for private repo access:
 ```bash
-export DENO_AUTH_TOKENS="ghp_yourtoken@raw.githubusercontent.com"
+deno add @jayobado/vue-toolkit
 ```
 
-> **Important:** Always declare `vue` in your own `deno.json` at the same URL used by `vue-toolkit`. This ensures a single Vue instance is shared. Two Vue instances will break `inject`, `provide`, and reactivity across component boundaries.
-
-For SSR also add:
+Or add to your `deno.json`:
 ```json
 {
   "imports": {
-    "@vue/server-renderer": "https://esm.sh/@vue/server-renderer@3.5.13?external=vue",
-    "vue-router":           "https://esm.sh/vue-router@4.4.5?external=vue"
+    "@jayobado/vue-toolkit": "jsr:@jayobado/vue-toolkit@^0.2.0",
+    "vue": "npm:vue@^3.5.13"
   }
 }
 ```
 
-The `?external=vue` flag prevents esm.sh from bundling a second copy of Vue inside these packages.
+> **Important:** Always declare `vue` in your own `deno.json`. This ensures a single Vue instance is shared. Two Vue instances will break `inject`, `provide`, and reactivity across component boundaries.
 
-### Browser (import map, no bundler)
-```html
-<script type="importmap">
-{
-  "imports": {
-    "vue":     "https://esm.sh/vue@3.5.13",
-    "@vue-toolkit": "https://raw.githubusercontent.com/jayobado/vue-toolkit/v0.1.0/mod.ts"
-  }
-}
-</script>
-<script type="module" src="/main.ts"></script>
+### Node / Bun / npm
+
+```bash
+npm install @jayobado/vue-toolkit vue
+```
+
+```typescript
+import { div, defineTS } from '@jayobado/vue-toolkit'
 ```
 
 ### Vite
+
 ```typescript
 // vite.config.ts
 import { defineConfig } from 'vite'
@@ -99,54 +101,17 @@ export default defineConfig({
   },
 })
 ```
-```typescript
-import { div, span, defineTS, css } from '@vue-toolkit'
-```
-
-### esbuild
-```typescript
-import { build } from 'esbuild'
-
-await build({
-  entryPoints: ['src/main.ts'],
-  bundle:      true,
-  outfile:     'dist/app.js',
-  alias: {
-    '@vue-toolkit': './path/to/vue-toolkit/mod.ts',
-  },
-})
-```
-
-### Node (18+)
-```bash
-npm install vue
-npm install ./path/to/vue-toolkit   # local
-# or if published to npm:
-npm install @jayobado/vue-toolkit
-```
-```typescript
-import { div, defineTS } from '@jayobado/vue-toolkit'
-```
-
-### Bun
-```bash
-bun add vue
-bun add ./path/to/vue-toolkit
-```
-```typescript
-import { div, defineTS } from 'vue-toolkit'
-```
 
 ---
 
 ## Quick start
+
 ```typescript
 import {
   defineTS, defineFn,
   div, h1, span, button, input,
-  css, staticCss,
   h,
-} from '@vue-toolkit'
+} from '@jayobado/vue-toolkit'
 import { createApp, ref } from 'vue'
 
 const Badge = defineFn({
@@ -156,10 +121,7 @@ const Badge = defineFn({
     variant: { type: String, default: 'info' },
   },
   render({ label, variant }) {
-    return span({
-      class:  variant,
-      styles: { padding: '2px 8px', borderRadius: 4, fontSize: 12 },
-    }, label)
+    return span({ class: `badge badge--${variant}` }, label)
   },
 })
 
@@ -172,7 +134,7 @@ const Counter = defineTS({
     const count = ref(props.initial)
 
     return () => div(
-      { styles: { display: 'flex', gap: 12, alignItems: 'center' } },
+      { class: 'counter' },
       button({ onClick: () => count.value-- }, '−'),
       span(null, String(count.value)),
       button({ onClick: () => count.value++ }, '+'),
@@ -187,6 +149,7 @@ createApp(Counter, { initial: 5 }).mount('#app')
 ## Element factories
 
 Every standard HTML element is available as a typed factory. All accept an optional props object as the first argument and children as subsequent arguments.
+
 ```typescript
 import {
   div, section, article, aside, header, footer, main, nav,
@@ -195,11 +158,10 @@ import {
   form, label, input, button, select, option, textarea, fieldset,
   img, a, hr, br,
   table, thead, tbody, tr, th, td,
-} from '@vue-toolkit'
+} from '@jayobado/vue-toolkit'
 
 div(null, 'Hello')
 div({ class: 'container', id: 'main' }, 'Hello')
-div({ styles: { display: 'flex', gap: 16 } }, 'Hello')
 button({ onClick: (e) => console.log(e) }, 'Click me')
 input({ type: 'email', placeholder: 'you@example.com', required: true })
 a({ href: '/about', target: '_blank' }, 'About')
@@ -221,28 +183,30 @@ All element factories extend `ElProps`:
 | Prop | Type | Description |
 |---|---|---|
 | `class` | `string` | CSS class string |
-| `styles` | `StyleObject` | Atomic CSS (see CSS section) |
 | `id` | `string` | Element ID |
 | `role` | `string` | ARIA role |
 | `tabIndex` | `number` | Tab order |
 | `key` | `string \| number` | Vue key for list rendering |
 | `aria-label` | `string` | ARIA label |
 | `onClick` | `(e: MouseEvent) => void` | Click handler |
-| `onInput` | `(e: InputEvent) => void` | Input handler |
+| `onInput` | `(e: Event) => void` | Input handler |
 | `onChange` | `(e: Event) => void` | Change handler |
-| `onSubmit` | `(e: SubmitEvent) => void` | Submit handler |
+| `onSubmit` | `(e: Event) => void` | Submit handler |
 | `onKeydown` | `(e: KeyboardEvent) => void` | Keydown handler |
 | `onFocus` | `(e: FocusEvent) => void` | Focus handler |
 | `onBlur` | `(e: FocusEvent) => void` | Blur handler |
+
+Specialised prop interfaces are available for `input` (`InputElProps`), `button` (`ButtonElProps`), and `a` (`AnchorElProps`).
 
 ## Components
 
 ### `defineFn` — functional component
 
 Stateless and presentational. No reactive state, no lifecycle hooks.
+
 ```typescript
-import { defineFn, span } from '@vue-toolkit'
-import type { PropType }   from 'vue'
+import { defineFn, span } from '@jayobado/vue-toolkit'
+import type { PropType } from 'vue'
 
 type Variant = 'success' | 'warning' | 'danger' | 'info'
 
@@ -263,12 +227,13 @@ h(StatusBadge, { label: 'Active', variant: 'success' })
 ### `defineTS` — stateful component
 
 Full Vue component with `setup()`, reactive state, and lifecycle hooks.
-```typescript
-import { defineTS, div, span, button } from '@vue-toolkit'
-import { ref, computed, onMounted }     from 'vue'
 
-const DataTable = defineTS({
-  name: 'DataTable',
+```typescript
+import { defineTS, div, span, button } from '@jayobado/vue-toolkit'
+import { ref, computed, onMounted } from 'vue'
+
+const UserList = defineTS({
+  name: 'UserList',
   props: {
     title:    { type: String, required: true as const },
     pageSize: { type: Number, default: 10 },
@@ -302,78 +267,19 @@ const DataTable = defineTS({
 ```
 
 ### `h()` — typed component instantiation
+
 ```typescript
-import { h } from '@vue-toolkit'
+import { h } from '@jayobado/vue-toolkit'
 
 h(StatusBadge, { label: 'OK', variant: 'success' })
-h(DataTable,   { title: 'Users', pageSize: 20 })
+h(UserList,    { title: 'Users', pageSize: 20 })
 h(Card,        { title: 'Details' }, div(null, 'Content'))
 ```
 
-## CSS
-
-Generates atomic class names from style objects and injects rules into a `<style>` tag. Identical property+value pairs always produce the same class.
-
-### `css()` — dynamic styles
-```typescript
-import { css } from '@vue-toolkit'
-
-const className = css({
-  display:      'flex',
-  gap:          16,
-  padding:      '12px 24px',
-  background:   '#1a1a2e',
-  borderRadius: 8,
-
-  pseudo: {
-    ':hover':    { background: '#2a2a3e' },
-    ':focus':    { outline: '2px solid #4a9edd' },
-    ':disabled': { opacity: 0.5, cursor: 'not-allowed' },
-  },
-
-  media: {
-    '(max-width: 768px)': { padding: '8px 16px' },
-    '(prefers-color-scheme: light)': { background: '#ffffff' },
-  },
-})
-
-div({ class: className }, 'Styled')
-```
-
-### `staticCss()` — module-level styles
-```typescript
-import { staticCss } from '@vue-toolkit'
-
-// Evaluated once on import
-const card = staticCss({
-  background:   '#161a22',
-  border:       '1px solid #1f2433',
-  borderRadius: 10,
-  padding:      24,
-})
-
-div({ class: card }, 'Card content')
-```
-
-### SSR usage
-```typescript
-import { collectStyles, resetStyles } from '@vue-toolkit'
-import { renderToString }             from '@vue/server-renderer'
-
-resetStyles() // isolate CSS per request
-const html  = await renderToString(app)
-const style = collectStyles() // returns <style> tag string
-
-return `<!DOCTYPE html>
-<html>
-  <head>${style}</head>
-  <body><div id="app">${html}</div></body>
-</html>`
-```
-
 ## Memoisation
+
 ```typescript
-import { withMemo, createMemoCache, defineTS, div, span } from '@vue-toolkit'
+import { withMemo, createMemoCache, defineTS, div, span } from '@jayobado/vue-toolkit'
 
 const cache = createMemoCache(1)
 
@@ -426,7 +332,6 @@ const schema = v.object({
 const { form, submit, submitting, submitted, errors } = useSubmit(
   { input: fields, schema },
   async (validated) => {
-    // validated is typed as { name: string; email: string }
     await api.createUser(validated)
   },
 )
@@ -449,7 +354,6 @@ const schema = z.object({
 const { form, submit, submitting, submitted, errors } = useSubmit(
   { input: fields, schema },
   async (validated) => {
-    // validated is typed as { name: string; email: string }
     await api.createUser(validated)
   },
 )
@@ -460,7 +364,7 @@ const { form, submit, submitting, submitted, errors } = useSubmit(
 ```typescript
 import { defineTS, div, input, button, span } from '@jayobado/vue-toolkit'
 import { useSubmit, flatten } from '@jayobado/vue-toolkit/form'
-import { reactive, ref } from 'vue'
+import { reactive } from 'vue'
 import * as v from 'valibot'
 
 const LoginForm = defineTS({
@@ -560,8 +464,6 @@ const formB = useSubmit({ submitting, input: fieldsB, schema: schemaB }, onSubmi
 
 Continuously validates input against a schema using `watchEffect`. Useful for pre-submit validation or real-time feedback.
 
-#### With Valibot
-
 ```typescript
 import { useParse, flatten } from '@jayobado/vue-toolkit/form'
 import { reactive } from 'vue'
@@ -576,22 +478,6 @@ const { output, errors } = useParse({
 })
 ```
 
-#### With Zod
-
-```typescript
-import { useParse, flatten } from '@jayobado/vue-toolkit/form'
-import { reactive } from 'vue'
-import * as z from 'zod'
-
-const fields = reactive({ age: '' as string | number })
-
-const { output, errors } = useParse({
-  input: fields,
-  schema: z.object({ age: z.number() }),
-  formatErrors: flatten,
-})
-```
-
 #### Return values
 
 | Property | Type | Description |
@@ -602,7 +488,7 @@ const { output, errors } = useParse({
 
 ### `flatten` — error formatter
 
-Converts Standard Schema issues into a flat structure with `root` and `nested` errors. Compatible with both Valibot's and Zod's issue format.
+Converts Standard Schema issues into a flat structure with `root` and `nested` errors.
 
 ```typescript
 import { flatten } from '@jayobado/vue-toolkit/form'
@@ -622,12 +508,14 @@ const { errors } = useSubmit(
 The `@jayobado/vue-toolkit/query` subpath provides composables for data fetching and mutations.
 
 ```typescript
-import { useQuery, useMutation } from '@jayobado/vue-toolkit/query'
+import { useQuery, useMutation, invalidate, invalidatePrefix } from '@jayobado/vue-toolkit/query'
 ```
 
 ### `useQuery` — reactive data fetching
 
-Fetches data and re-fetches automatically when reactive dependencies change. Any refs read inside the query function are tracked — no query keys needed.
+Fetches data and re-fetches automatically when reactive dependencies change. Supports optional cache key for request deduplication and stale-while-revalidate.
+
+#### Basic usage
 
 ```typescript
 import { useQuery } from '@jayobado/vue-toolkit/query'
@@ -637,14 +525,31 @@ const { data, error, loading, refetch } = useQuery(
 )
 ```
 
-#### Reactive dependencies
+#### With caching
 
-When a ref changes inside the query function, the query re-fetches automatically:
+When a `key` is provided, queries with the same key share state and deduplicate in-flight requests. Multiple components calling `useQuery` with the same key make one request.
 
 ```typescript
 import { ref } from 'vue'
 import { useQuery } from '@jayobado/vue-toolkit/query'
 
+const page = ref(1)
+
+const { data, loading } = useQuery(
+  () => api.users.list({ page: page.value }),
+  {
+    key: () => ['users', page.value],
+    staleTime: 30_000,  // consider data fresh for 30s
+    gcTime: 300_000,    // keep unused entries for 5 min
+  },
+)
+```
+
+#### Reactive dependencies (uncached)
+
+When no `key` is provided, any refs read inside the query function are tracked and the query re-fetches automatically:
+
+```typescript
 const page = ref(1)
 
 const { data, loading } = useQuery(
@@ -657,70 +562,38 @@ page.value = 2
 
 #### Conditional fetching
 
-Use `enabled` to control when the query runs:
-
 ```typescript
-import { ref } from 'vue'
-import { useQuery } from '@jayobado/vue-toolkit/query'
-
 const userId = ref<string | null>(null)
 
 const { data, loading } = useQuery(
   () => api.users.getById({ id: userId.value! }),
   { enabled: () => !!userId.value },
 )
-
-// Query runs only after userId is set
-userId.value = '123'
 ```
 
-#### Retry
+#### Cache invalidation
 
 ```typescript
-const { data, error } = useQuery(
-  () => api.users.list({ page: 1 }),
-  { retry: 3, retryDelay: 2000 },
-)
-```
+import { useMutation, invalidate, invalidatePrefix } from '@jayobado/vue-toolkit/query'
 
-#### With vue-toolkit components
-
-```typescript
-import { defineTS, div, span, button } from '@jayobado/vue-toolkit'
-import { useQuery } from '@jayobado/vue-toolkit/query'
-import { ref } from 'vue'
-
-const UserList = defineTS({
-  name: 'UserList',
-  props: {},
-  setup() {
-    const page = ref(1)
-
-    const { data, loading, error } = useQuery(
-      () => api.users.list({ page: page.value }),
-    )
-
-    return () => {
-      if (loading.value) return span(null, 'Loading...')
-      if (error.value) return span(null, error.value.message)
-
-      return div(null,
-        ...data.value!.data.map(u => div(null, u.name)),
-        div(null,
-          button({ onClick: () => page.value--, disabled: page.value <= 1 }, 'Prev'),
-          span(null, `Page ${page.value}`),
-          button({ onClick: () => page.value++ }, 'Next'),
-        ),
-      )
-    }
+const { mutate } = useMutation(
+  (input) => api.users.create(input),
+  {
+    onSuccess: () => {
+      invalidate(['users'])           // invalidate exact key
+      invalidatePrefix(['users'])     // invalidate all keys starting with ['users', ...]
+    },
   },
-})
+)
 ```
 
 #### Options
 
 | Option | Type | Description |
 |---|---|---|
+| `key` | `MaybeRefOrGetter<unknown[]>` | Cache key — enables deduplication and stale-while-revalidate |
+| `staleTime` | `number` | Ms before cached data is considered stale (default: `0` = always stale) |
+| `gcTime` | `number` | Ms to keep unused cache entries (default: `300000` = 5 min) |
 | `enabled` | `MaybeRefOrGetter<boolean>` | Controls whether the query runs (default: `true`) |
 | `retry` | `number` | Number of retry attempts on failure (default: `0`) |
 | `retryDelay` | `number` | Milliseconds between retries (default: `1000`) |
@@ -733,11 +606,12 @@ const UserList = defineTS({
 | `data` | `Ref<T \| undefined>` | Last successful result |
 | `error` | `Ref<Error \| undefined>` | Last error (cleared on next fetch) |
 | `loading` | `Ref<boolean>` | Whether a fetch is in progress |
-| `refetch` | `() => Promise<void>` | Manually trigger a re-fetch |
+| `refetch` | `() => void \| Promise<void>` | Manually trigger a re-fetch |
+| `invalidate` | `() => void` | Mark this query's cache entry as stale |
 
 ### `useMutation` — imperative async operations
 
-Wraps any async function with loading, error, and result state. Use for operations triggered by user actions that aren't form submissions — deletes, toggles, reordering, etc.
+Wraps any async function with loading, error, and result state.
 
 ```typescript
 import { useMutation } from '@jayobado/vue-toolkit/query'
@@ -748,48 +622,6 @@ const { mutate, loading, error, data } = useMutation(
     onSuccess: () => { navigateTo('/users') },
     onError: (err) => { toast.show(err.message) },
   },
-)
-```
-
-#### Usage in a component
-
-```typescript
-import { defineTS, div, button, span } from '@jayobado/vue-toolkit'
-import { useMutation } from '@jayobado/vue-toolkit/query'
-
-const DeleteButton = defineTS({
-  name: 'DeleteButton',
-  props: {
-    userId: { type: String, required: true as const },
-  },
-  setup(props) {
-    const { mutate, loading } = useMutation(
-      (id: string) => api.users.delete({ id }),
-      {
-        onSuccess: () => { window.location.href = '/users' },
-      },
-    )
-
-    return () => button(
-      { onClick: () => mutate(props.userId), disabled: loading.value },
-      loading.value ? 'Deleting...' : 'Delete user',
-    )
-  },
-})
-```
-
-#### Toggling state
-
-```typescript
-const { mutate: toggleArchive, loading } = useMutation(
-  (id: string) => api.projects.toggleArchive({ id }),
-  {
-    onSuccess: (result) => { project.value = result },
-  },
-)
-
-button({ onClick: () => toggleArchive(project.value.id), disabled: loading.value },
-  'Archive',
 )
 ```
 
@@ -818,27 +650,28 @@ button({ onClick: () => toggleArchive(project.value.id), disabled: loading.value
 | Scenario | Hook |
 |---|---|
 | Fetch data on mount or when dependencies change | `useQuery` |
+| Fetch with deduplication and caching | `useQuery` with `key` |
 | Submit a form with validation | `useSubmit` (from `@jayobado/vue-toolkit/form`) |
 | Delete, toggle, or any non-form write operation | `useMutation` |
 | Real-time input validation | `useParse` (from `@jayobado/vue-toolkit/form`) |
 
 ## Components
 
-The `@jayobado/vue-toolkit/components` subpath provides low-level helpers that reduce DOM boilerplate without imposing any styling or layout opinions. All components are unstyled by default — use `styles`, `class`, or both to control appearance.
+The `@jayobado/vue-toolkit/components` subpath provides render helpers and interactive composables. All are unstyled — pass `class` strings to control appearance.
 
 ```typescript
-import { FormField, FormGroup, DataTable } from '@jayobado/vue-toolkit/components'
+import { formField, formGroup, dataTable } from '@jayobado/vue-toolkit/components'
 ```
 
-### `FormField` — label + input + error
+### `formField` — label + input + error
 
 Wraps a label, input (passed as children), and optional error message into a `div`. The label is linked to the input via the `for` attribute, and errors use `role="alert"` for accessibility.
 
 ```typescript
-import { FormField } from '@jayobado/vue-toolkit/components'
+import { formField } from '@jayobado/vue-toolkit/components'
 import { input } from '@jayobado/vue-toolkit'
 
-FormField(
+formField(
   { label: 'Email', name: 'email', required: true },
   input({ name: 'email', type: 'email', placeholder: 'you@example.com' }),
 )
@@ -847,43 +680,16 @@ FormField(
 #### With error display
 
 ```typescript
-FormField(
+formField(
   {
     label: 'Email',
     name: 'email',
     error: errors.value?.nested?.email?.[0],
     required: true,
+    class: 'form-field',
+    labelClass: 'form-label',
+    errorClass: 'form-error',
   },
-  input({ name: 'email', type: 'email' }),
-)
-```
-
-#### Styled
-
-```typescript
-FormField(
-  {
-    label: 'Email',
-    name: 'email',
-    error: errors.value?.nested?.email?.[0],
-    required: true,
-    styles: { display: 'flex', flexDirection: 'column', gap: 4 },
-    labelStyles: { fontSize: 14, fontWeight: 600, color: '#ccc' },
-    errorStyles: { fontSize: 12, color: '#ef4444' },
-  },
-  input({
-    name: 'email',
-    type: 'email',
-    styles: { padding: '8px 12px', borderRadius: 4, border: '1px solid #333' },
-  }),
-)
-```
-
-#### With CSS classes
-
-```typescript
-FormField(
-  { label: 'Email', name: 'email', class: 'form-field' },
   input({ name: 'email', type: 'email', class: 'form-input' }),
 )
 ```
@@ -897,23 +703,22 @@ FormField(
 | `error` | `string` | Error message to display |
 | `required` | `boolean` | Appends ` *` to label text |
 | `class` | `string` | CSS class on wrapper div |
-| `styles` | `StyleObject` | Atomic CSS on wrapper div |
-| `labelStyles` | `StyleObject` | Atomic CSS on label |
-| `errorStyles` | `StyleObject` | Atomic CSS on error span |
+| `labelClass` | `string` | CSS class on label |
+| `errorClass` | `string` | CSS class on error span |
 
-### `FormGroup` — fieldset + legend
+### `formGroup` — fieldset + legend
 
 Groups related fields inside a `fieldset` with an optional `legend`.
 
 ```typescript
-import { FormGroup, FormField } from '@jayobado/vue-toolkit/components'
+import { formGroup, formField } from '@jayobado/vue-toolkit/components'
 import { input } from '@jayobado/vue-toolkit'
 
-FormGroup(
-  { legend: 'Billing address', styles: { border: '1px solid #333', padding: 16, borderRadius: 8 } },
-  FormField({ label: 'Street', name: 'street' }, input({ name: 'street' })),
-  FormField({ label: 'City', name: 'city' }, input({ name: 'city' })),
-  FormField({ label: 'Zip', name: 'zip' }, input({ name: 'zip' })),
+formGroup(
+  { legend: 'Billing address', class: 'field-group' },
+  formField({ label: 'Street', name: 'street' }, input({ name: 'street' })),
+  formField({ label: 'City', name: 'city' }, input({ name: 'city' })),
+  formField({ label: 'Zip', name: 'zip' }, input({ name: 'zip' })),
 )
 ```
 
@@ -923,15 +728,14 @@ FormGroup(
 |---|---|---|
 | `legend` | `string` | Legend text |
 | `class` | `string` | CSS class on fieldset |
-| `styles` | `StyleObject` | Atomic CSS on fieldset |
-| `legendStyles` | `StyleObject` | Atomic CSS on legend |
+| `legendClass` | `string` | CSS class on legend |
 
-### `DataTable` — column-driven table
+### `dataTable` — column-driven table
 
 Takes a column definition and rows array, handles `thead`/`tbody`/`tr`/`td` boilerplate. No built-in sorting or pagination — use refs and `useQuery` for that.
 
 ```typescript
-import { DataTable } from '@jayobado/vue-toolkit/components'
+import { dataTable } from '@jayobado/vue-toolkit/components'
 import { button } from '@jayobado/vue-toolkit'
 import type { Column } from '@jayobado/vue-toolkit/components'
 
@@ -947,39 +751,12 @@ const columns: Column<User>[] = [
   },
 ]
 
-DataTable({
+dataTable({
   columns,
   rows: users.value,
+  class: 'data-table',
   onRowClick: (row) => navigateTo(`/users/${row.id}`),
   emptyText: 'No users found',
-})
-```
-
-#### Styled
-
-```typescript
-DataTable({
-  columns: [
-    {
-      key: 'name',
-      header: 'Name',
-      headerStyles: { textAlign: 'left', padding: '8px 12px', borderBottom: '2px solid #333' },
-      cellStyles: { padding: '8px 12px' },
-    },
-    {
-      key: 'role',
-      header: 'Role',
-      headerStyles: { textAlign: 'left', padding: '8px 12px', borderBottom: '2px solid #333' },
-      cellStyles: { padding: '8px 12px', color: '#888' },
-    },
-  ],
-  rows: users.value,
-  styles: { width: '100%', borderCollapse: 'collapse' },
-  headerStyles: { background: '#1a1a2e' },
-  rowStyles: (row, i) => ({
-    background: i % 2 === 0 ? '#161622' : '#1a1a2e',
-    pseudo: { ':hover': { background: '#222238' } },
-  }),
 })
 ```
 
@@ -990,8 +767,8 @@ DataTable({
 | `key` | `string` | Property name to read from row (used when no `render`) |
 | `header` | `string` | Column header text |
 | `render` | `(row, index) => VNode \| string` | Custom cell renderer |
-| `headerStyles` | `StyleObject` | Atomic CSS on `th` |
-| `cellStyles` | `StyleObject` | Atomic CSS on `td` |
+| `headerClass` | `string` | CSS class on `th` |
+| `cellClass` | `string` | CSS class on `td` |
 
 #### Table props
 
@@ -1000,21 +777,284 @@ DataTable({
 | `columns` | `Column<T>[]` | Column definitions (required) |
 | `rows` | `T[]` | Data rows (required) |
 | `class` | `string` | CSS class on `table` |
-| `styles` | `StyleObject` | Atomic CSS on `table` |
-| `headerStyles` | `StyleObject` | Atomic CSS on header `tr` |
-| `rowStyles` | `StyleObject \| (row, index) => StyleObject` | Static or per-row styles |
+| `headerClass` | `string` | CSS class on header `tr` |
+| `rowClass` | `string \| (row, index) => string` | Static or per-row class |
 | `emptyText` | `string` | Text when rows is empty (default: `'No data'`) |
 | `rowKey` | `(row, index) => string \| number` | Key extraction for list rendering |
 | `onRowClick` | `(row, index) => void` | Row click handler |
 
+## Interactive components
+
+The `@jayobado/vue-toolkit/components` subpath also provides unstyled interactive components built on top of the primitives. All support CSS transitions via `TransitionClasses`.
+
+### `useModal` — dialog with focus trapping and scroll lock
+
+Creates a backdrop and content wrapper. Supports enter/leave transitions, escape key, focus trapping, and scroll locking.
+
+```typescript
+import { useModal } from '@jayobado/vue-toolkit/components'
+
+const { open, close, isOpen, contentEl } = useModal({
+  class: 'modal-content',
+  backdropClass: 'modal-backdrop',
+})
+```
+
+#### Adding content
+
+Append your content to `contentEl` after opening:
+
+```typescript
+import { defineTS, div, h2, p, button } from '@jayobado/vue-toolkit'
+import { useModal } from '@jayobado/vue-toolkit/components'
+
+const ConfirmDialog = defineTS({
+  name: 'ConfirmDialog',
+  props: {},
+  setup() {
+    const { open, close, isOpen, contentEl } = useModal({
+      class: 'modal-content',
+      backdropClass: 'modal-backdrop',
+      onOpen: () => {
+        if (contentEl.value) {
+          contentEl.value.append(
+            h2(null, 'Are you sure?'),
+            p(null, 'This action cannot be undone.'),
+            div({ class: 'modal-actions' },
+              button({ onClick: close }, 'Cancel'),
+              button({ onClick: () => { handleDelete(); close() } }, 'Delete'),
+            ),
+          )
+        }
+      },
+    })
+
+    return () => button({ onClick: open }, 'Delete item')
+  },
+})
+```
+
+#### With transitions
+
+```typescript
+const { open, close } = useModal({
+  class: 'modal-content',
+  backdropClass: 'modal-backdrop',
+  transition: {
+    enterFrom: 'modal-enter-from',
+    enterActive: 'modal-enter-active',
+    enterTo: 'modal-enter-to',
+    leaveFrom: 'modal-leave-from',
+    leaveActive: 'modal-leave-active',
+    leaveTo: 'modal-leave-to',
+  },
+  backdropTransition: {
+    enterFrom: 'backdrop-enter-from',
+    enterActive: 'backdrop-enter-active',
+    enterTo: 'backdrop-enter-to',
+    leaveFrom: 'backdrop-leave-from',
+    leaveActive: 'backdrop-leave-active',
+    leaveTo: 'backdrop-leave-to',
+  },
+})
+```
+
+#### Options
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `class` | `string` | — | CSS class on content wrapper |
+| `backdropClass` | `string` | — | CSS class on backdrop |
+| `closeOnBackdrop` | `boolean` | `true` | Close when clicking backdrop |
+| `closeOnEscape` | `boolean` | `true` | Close on escape key |
+| `trapFocus` | `boolean` | `true` | Trap tab navigation inside modal |
+| `lockScroll` | `boolean` | `true` | Prevent body scrolling |
+| `transition` | `TransitionClasses` | — | Enter/leave transition on content |
+| `backdropTransition` | `TransitionClasses` | — | Enter/leave transition on backdrop |
+| `onOpen` | `() => void` | — | Called after modal opens |
+| `onClose` | `() => void` | — | Called after modal closes |
+
+#### Return values
+
+| Property | Type | Description |
+|---|---|---|
+| `open` | `() => void` | Open the modal |
+| `close` | `() => Promise<void>` | Close the modal (awaits leave transition) |
+| `isOpen` | `Ref<boolean>` | Whether modal is open |
+| `backdropEl` | `Ref<HTMLElement \| null>` | Backdrop element ref |
+| `contentEl` | `Ref<HTMLElement \| null>` | Content wrapper ref |
+
+### `useToaster` — toast notifications
+
+Creates a global toast container. Call `show()` from anywhere — no component context needed.
+
+```typescript
+import { useToaster } from '@jayobado/vue-toolkit/components'
+
+const toast = useToaster({
+  containerClass: 'toast-container',
+  variantClass: {
+    success: 'toast-success',
+    error: 'toast-error',
+    info: 'toast-info',
+    warning: 'toast-warning',
+  },
+})
+
+// Use anywhere
+toast.show('User created', { variant: 'success' })
+toast.show('Something went wrong', { variant: 'error', duration: 5000 })
+toast.show('Persistent message', { duration: 0 }) // 0 = no auto-dismiss
+```
+
+#### With transitions
+
+```typescript
+const toast = useToaster({
+  containerClass: 'toast-container',
+  transition: {
+    enterFrom: 'toast-enter-from',
+    enterActive: 'toast-enter-active',
+    enterTo: 'toast-enter-to',
+    leaveFrom: 'toast-leave-from',
+    leaveActive: 'toast-leave-active',
+    leaveTo: 'toast-leave-to',
+  },
+})
+```
+
+#### Toast options
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `duration` | `number` | `3000` | Auto-dismiss delay in ms (`0` = persistent) |
+| `variant` | `ToastVariant` | `'info'` | `'info'` \| `'success'` \| `'warning'` \| `'error'` |
+| `class` | `string` | — | CSS class on toast element |
+| `dismissible` | `boolean` | `true` | Click to dismiss |
+| `transition` | `TransitionClasses` | — | Per-toast transition override |
+
+#### Toaster options
+
+| Option | Type | Description |
+|---|---|---|
+| `containerClass` | `string` | CSS class on container |
+| `variantClass` | `Record<ToastVariant, string>` | CSS class per variant |
+| `transition` | `TransitionClasses` | Default transition for all toasts |
+
+### `useTooltip` — hover/focus tooltip
+
+Attaches a tooltip to a trigger element. Positioned automatically with viewport flipping.
+
+```typescript
+import { useTooltip } from '@jayobado/vue-toolkit/components'
+
+const btn = document.createElement('button')
+btn.textContent = 'Hover me'
+
+useTooltip(btn, {
+  text: 'This is a tooltip',
+  placement: 'top',
+  class: 'tooltip',
+})
+```
+
+#### Options
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `text` | `string` | — | Tooltip text (required) |
+| `placement` | `Placement` | `'top'` | Preferred position |
+| `offset` | `number` | `8` | Gap between trigger and tooltip in px |
+| `showDelay` | `number` | `200` | Delay before showing in ms |
+| `hideDelay` | `number` | `100` | Delay before hiding in ms |
+| `class` | `string` | — | CSS class on tooltip |
+
+### `useDropdown` — accessible dropdown menu
+
+Attaches a dropdown menu to a trigger element with keyboard navigation (arrow keys, enter, escape). The trigger element is automatically excluded from click-outside detection.
+
+```typescript
+import { useDropdown } from '@jayobado/vue-toolkit/components'
+
+const btn = document.createElement('button')
+btn.textContent = 'Actions'
+
+const { toggle, isOpen } = useDropdown(btn, {
+  items: [
+    { label: 'Edit', onSelect: () => edit() },
+    { label: 'Duplicate', onSelect: () => duplicate() },
+    { label: 'Archive', disabled: true },
+    { label: 'Delete', onSelect: () => remove() },
+  ],
+  placement: 'bottom',
+  class: 'dropdown-menu',
+  itemClass: 'dropdown-item',
+  activeItemClass: 'dropdown-item--active',
+  disabledItemClass: 'dropdown-item--disabled',
+})
+
+btn.addEventListener('click', toggle)
+```
+
+#### With transitions
+
+```typescript
+const { toggle } = useDropdown(btn, {
+  items: [...],
+  class: 'dropdown-menu',
+  transition: {
+    enterFrom: 'dropdown-enter-from',
+    enterActive: 'dropdown-enter-active',
+    enterTo: 'dropdown-enter-to',
+    leaveFrom: 'dropdown-leave-from',
+    leaveActive: 'dropdown-leave-active',
+    leaveTo: 'dropdown-leave-to',
+  },
+})
+```
+
+#### Options
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `items` | `DropdownItem[]` | — | Menu items (required) |
+| `placement` | `Placement` | `'bottom'` | Preferred position |
+| `offset` | `number` | `4` | Gap between trigger and menu in px |
+| `class` | `string` | — | CSS class on menu container |
+| `itemClass` | `string` | — | CSS class on each item |
+| `activeItemClass` | `string` | — | CSS class for keyboard/hover active item |
+| `disabledItemClass` | `string` | — | CSS class for disabled items |
+| `transition` | `TransitionClasses` | — | Enter/leave transition on menu |
+| `onSelect` | `(item) => void` | — | Called when any item is selected |
+
+#### DropdownItem
+
+| Property | Type | Description |
+|---|---|---|
+| `label` | `string` | Display text |
+| `value` | `string` | Optional value for `onSelect` |
+| `disabled` | `boolean` | Prevents selection |
+| `onSelect` | `() => void` | Per-item callback |
+
+#### Return values
+
+| Property | Type | Description |
+|---|---|---|
+| `open` | `() => void` | Open the dropdown |
+| `close` | `() => Promise<void>` | Close the dropdown (awaits leave transition) |
+| `toggle` | `() => void` | Toggle open/close |
+| `isOpen` | `Ref<boolean>` | Whether dropdown is open |
+| `dispose` | `() => void` | Clean up listeners |
+
 ## Primitives
 
-The `@jayobado/vue-toolkit/primitives` subpath provides low-level building blocks for interactive UI patterns. Use them directly or combine them to build custom components.
+The `@jayobado/vue-toolkit/primitives` subpath provides low-level building blocks for interactive UI patterns.
 
 ```typescript
 import {
   createPortal, useClickOutside, useEscapeKey,
   useFocusTrap, useScrollLock, computePosition,
+  enter, leave,
   useMediaQuery, useLocalStorage, useDebounce, useDebounceFn,
   useInterval, useEventListener, usePagination, useSelection, useClipboard,
 } from '@jayobado/vue-toolkit/primitives'
@@ -1038,6 +1078,8 @@ remove()
 
 ### `useClickOutside` — detect clicks outside an element
 
+Uses two-phase detection (pointerdown + click) with `composedPath()` for shadow DOM support. Listens in capture phase for reliability. Supports an `ignore` list of refs or CSS selectors.
+
 ```typescript
 import { useClickOutside } from '@jayobado/vue-toolkit/primitives'
 import { ref } from 'vue'
@@ -1047,9 +1089,15 @@ const menuEl = ref<HTMLElement | null>(null)
 const dispose = useClickOutside(menuEl, () => {
   console.log('clicked outside')
 })
-```
 
-Automatically cleaned up when the Vue scope is disposed. Returns a manual `dispose` function for standalone use.
+// With ignore list
+const triggerEl = ref<HTMLElement | null>(null)
+
+useClickOutside(menuEl, () => close(), [
+  triggerEl,          // ignore clicks on this ref
+  '.ignore-clicks',   // ignore clicks matching this CSS selector
+])
+```
 
 ### `useEscapeKey` — listen for escape key
 
@@ -1104,9 +1152,42 @@ floatingEl.style.top = `${top}px`
 floatingEl.style.left = `${left}px`
 ```
 
-#### Placement options
+Placement options: `'top'` | `'bottom'` | `'left'` | `'right'` — defaults to `'bottom'`.
 
-`'top'` | `'bottom'` | `'left'` | `'right'` — defaults to `'bottom'`. If the preferred placement doesn't fit, it tries the opposite side, then the remaining two.
+### `enter` / `leave` — CSS transition helpers
+
+Apply enter/leave transitions using CSS classes. Works with any class source — Tailwind, CSS modules, `@jayobado/css`, or plain CSS.
+
+```typescript
+import { enter, leave } from '@jayobado/vue-toolkit/primitives'
+
+// Enter transition
+await enter(element, {
+  enterFrom: 'opacity-0 scale-95',
+  enterActive: 'transition-all duration-150 ease-out',
+  enterTo: 'opacity-100 scale-100',
+})
+
+// Leave transition
+await leave(element, {
+  leaveFrom: 'opacity-100 scale-100',
+  leaveActive: 'transition-all duration-100 ease-in',
+  leaveTo: 'opacity-0 scale-95',
+})
+```
+
+Both functions return a `Promise` that resolves when the transition completes. If no CSS transition or animation is defined, they resolve immediately.
+
+#### TransitionClasses
+
+| Property | Type | Description |
+|---|---|---|
+| `enterFrom` | `string` | Class applied before enter starts |
+| `enterActive` | `string` | Class applied during enter |
+| `enterTo` | `string` | Class applied after enter starts |
+| `leaveFrom` | `string` | Class applied before leave starts |
+| `leaveActive` | `string` | Class applied during leave |
+| `leaveTo` | `string` | Class applied after leave starts |
 
 ### `useMediaQuery` — reactive media query
 
@@ -1182,23 +1263,16 @@ const { stop, restart } = useInterval(
 ```typescript
 import { useEventListener } from '@jayobado/vue-toolkit/primitives'
 
-// Window
 useEventListener(window, 'resize', (e) => {
   console.log(window.innerWidth)
 })
 
-// Element
-useEventListener(myElement, 'click', (e) => {
-  console.log(e.clientX)
-})
-
-// With options
 useEventListener(document, 'scroll', handler, { passive: true })
 ```
 
 ### `usePagination` — page state management
 
-Manages pagination state and derived values. Combine with `useQuery` and `DataTable`.
+Manages pagination state and derived values. Combine with `useQuery` and `dataTable`.
 
 ```typescript
 import { usePagination } from '@jayobado/vue-toolkit/primitives'
@@ -1236,22 +1310,16 @@ import { useSelection } from '@jayobado/vue-toolkit/primitives'
 
 const { isSelected, toggle, selectAll, clear, count, toArray } = useSelection<string>()
 
-// Toggle a row
 toggle(user.id)
 
-// Check box column
 input({
   type: 'checkbox',
   checked: isSelected(user.id),
   onChange: () => toggle(user.id),
 })
 
-// Select all / clear all
 button({ onClick: () => selectAll(users.value.map(u => u.id)) }, 'Select all')
 button({ onClick: clear }, `Clear (${count.value})`)
-
-// Get selected IDs for a bulk action
-const ids = toArray()
 ```
 
 #### Return values
@@ -1284,285 +1352,6 @@ button(
 | Option | Type | Default | Description |
 |---|---|---|---|
 | `resetDelay` | `number` | `2000` | Ms before `copied` resets to `false` |
-
-## Interactive components
-
-The `@jayobado/vue-toolkit/components` subpath also provides unstyled interactive components built on top of the primitives. All are controlled via composables and styled entirely by you.
-
-### `useModal` — dialog with focus trapping and scroll lock
-
-```typescript
-import { useModal } from '@jayobado/vue-toolkit/components'
-
-const { open, close, isOpen, contentEl } = useModal({
-  backdropStyles: {
-    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-  },
-  styles: {
-    background: '#1a1a2e', borderRadius: 8, padding: 24,
-    minWidth: 400, maxWidth: '90vw',
-  },
-})
-```
-
-#### Adding content
-
-The modal creates a backdrop and content wrapper. Append your content to `contentEl` after opening:
-
-```typescript
-import { defineTS, div, h2, p, button } from '@jayobado/vue-toolkit'
-import { useModal } from '@jayobado/vue-toolkit/components'
-
-const ConfirmDialog = defineTS({
-  name: 'ConfirmDialog',
-  props: {},
-  setup() {
-    const { open, close, isOpen, contentEl } = useModal({
-      backdropStyles: {
-        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-      },
-      styles: {
-        background: '#1a1a2e', borderRadius: 8, padding: 24, minWidth: 400,
-      },
-      onOpen: () => {
-        if (contentEl.value) {
-          contentEl.value.append(
-            h2(null, 'Are you sure?'),
-            p(null, 'This action cannot be undone.'),
-            div({ styles: { display: 'flex', gap: 8, justifyContent: 'flex-end' } },
-              button({ onClick: close }, 'Cancel'),
-              button({ onClick: () => { handleDelete(); close() } }, 'Delete'),
-            ),
-          )
-        }
-      },
-    })
-
-    return () => button({ onClick: open }, 'Delete item')
-  },
-})
-```
-
-#### Options
-
-| Option | Type | Default | Description |
-|---|---|---|---|
-| `class` | `string` | — | CSS class on content wrapper |
-| `styles` | `StyleObject` | — | Atomic CSS on content wrapper |
-| `backdropClass` | `string` | — | CSS class on backdrop |
-| `backdropStyles` | `StyleObject` | — | Atomic CSS on backdrop |
-| `closeOnBackdrop` | `boolean` | `true` | Close when clicking backdrop |
-| `closeOnEscape` | `boolean` | `true` | Close on escape key |
-| `trapFocus` | `boolean` | `true` | Trap tab navigation inside modal |
-| `lockScroll` | `boolean` | `true` | Prevent body scrolling |
-| `onOpen` | `() => void` | — | Called after modal opens |
-| `onClose` | `() => void` | — | Called after modal closes |
-
-#### Return values
-
-| Property | Type | Description |
-|---|---|---|
-| `open` | `() => void` | Open the modal |
-| `close` | `() => void` | Close the modal |
-| `isOpen` | `Ref<boolean>` | Whether modal is open |
-| `backdropEl` | `Ref<HTMLElement \| null>` | Backdrop element ref |
-| `contentEl` | `Ref<HTMLElement \| null>` | Content wrapper ref |
-
-### `createToaster` — toast notifications
-
-Creates a global toast container. Call `show()` from anywhere — no component context needed.
-
-```typescript
-import { createToaster } from '@jayobado/vue-toolkit/components'
-
-const toast = createToaster({
-  containerStyles: {
-    position: 'fixed', top: 16, right: 16, zIndex: 9999,
-    display: 'flex', flexDirection: 'column', gap: 8,
-  },
-  variantStyles: {
-    success: { background: '#065f46', color: '#fff', padding: '12px 16px', borderRadius: 6 },
-    error: { background: '#991b1b', color: '#fff', padding: '12px 16px', borderRadius: 6 },
-    info: { background: '#1e3a5f', color: '#fff', padding: '12px 16px', borderRadius: 6 },
-    warning: { background: '#92400e', color: '#fff', padding: '12px 16px', borderRadius: 6 },
-  },
-})
-
-// Use anywhere
-toast.show('User created', { variant: 'success' })
-toast.show('Something went wrong', { variant: 'error', duration: 5000 })
-toast.show('Persistent message', { duration: 0 }) // 0 = no auto-dismiss
-```
-
-#### With mutations
-
-```typescript
-import { useMutation } from '@jayobado/vue-toolkit/query'
-
-const { mutate } = useMutation(
-  (id: string) => api.users.delete({ id }),
-  {
-    onSuccess: () => toast.show('User deleted', { variant: 'success' }),
-    onError: (err) => toast.show(err.message, { variant: 'error' }),
-  },
-)
-```
-
-#### Toast options
-
-| Option | Type | Default | Description |
-|---|---|---|---|
-| `duration` | `number` | `3000` | Auto-dismiss delay in ms (`0` = persistent) |
-| `variant` | `ToastVariant` | `'info'` | `'info'` \| `'success'` \| `'warning'` \| `'error'` |
-| `class` | `string` | — | CSS class on toast element |
-| `styles` | `StyleObject` | — | Atomic CSS on toast element |
-| `dismissible` | `boolean` | `true` | Click to dismiss |
-
-#### Toaster options
-
-| Option | Type | Description |
-|---|---|---|
-| `containerClass` | `string` | CSS class on container |
-| `containerStyles` | `StyleObject` | Atomic CSS on container |
-| `variantStyles` | `Record<ToastVariant, StyleObject>` | Default styles per variant |
-
-### `useTooltip` — hover/focus tooltip
-
-Attaches a tooltip to a trigger element. Positioned automatically with viewport flipping.
-
-```typescript
-import { useTooltip } from '@jayobado/vue-toolkit/components'
-
-const btn = document.createElement('button')
-btn.textContent = 'Hover me'
-
-useTooltip(btn, {
-  text: 'This is a tooltip',
-  placement: 'top',
-  styles: {
-    background: '#333', color: '#fff', padding: '4px 8px',
-    borderRadius: 4, fontSize: 12,
-  },
-})
-```
-
-#### Options
-
-| Option | Type | Default | Description |
-|---|---|---|---|
-| `text` | `string` | — | Tooltip text (required) |
-| `placement` | `Placement` | `'top'` | Preferred position |
-| `offset` | `number` | `8` | Gap between trigger and tooltip in px |
-| `showDelay` | `number` | `200` | Delay before showing in ms |
-| `hideDelay` | `number` | `100` | Delay before hiding in ms |
-| `class` | `string` | — | CSS class on tooltip |
-| `styles` | `StyleObject` | — | Atomic CSS on tooltip |
-
-### `useDropdown` — accessible dropdown menu
-
-Attaches a dropdown menu to a trigger element with keyboard navigation (arrow keys, enter, escape).
-
-```typescript
-import { useDropdown } from '@jayobado/vue-toolkit/components'
-
-const btn = document.createElement('button')
-btn.textContent = 'Actions'
-
-const { toggle, isOpen } = useDropdown(btn, {
-  items: [
-    { label: 'Edit', onSelect: () => edit() },
-    { label: 'Duplicate', onSelect: () => duplicate() },
-    { label: 'Archive', disabled: true },
-    { label: 'Delete', onSelect: () => remove() },
-  ],
-  placement: 'bottom',
-  styles: {
-    background: '#1a1a2e', border: '1px solid #333', borderRadius: 6,
-    minWidth: 160, overflow: 'hidden',
-  },
-  itemStyles: { padding: '8px 12px' },
-  activeItemStyles: { background: '#2a2a3e' },
-  disabledItemStyles: { opacity: 0.4, cursor: 'not-allowed' },
-})
-
-btn.addEventListener('click', toggle)
-```
-
-#### With a callback
-
-```typescript
-const { toggle } = useDropdown(triggerEl, {
-  items: [
-    { label: 'CSV', value: 'csv' },
-    { label: 'JSON', value: 'json' },
-    { label: 'Excel', value: 'xlsx' },
-  ],
-  onSelect: (item) => {
-    exportData(item.value!)
-  },
-  styles: { background: '#1a1a2e', border: '1px solid #333', borderRadius: 6 },
-  itemStyles: { padding: '8px 12px' },
-  activeItemStyles: { background: '#2a2a3e' },
-})
-```
-
-#### Options
-
-| Option | Type | Default | Description |
-|---|---|---|---|
-| `items` | `DropdownItem[]` | — | Menu items (required) |
-| `placement` | `Placement` | `'bottom'` | Preferred position |
-| `offset` | `number` | `4` | Gap between trigger and menu in px |
-| `class` | `string` | — | CSS class on menu container |
-| `styles` | `StyleObject` | — | Atomic CSS on menu container |
-| `itemClass` | `string` | — | CSS class on each item |
-| `itemStyles` | `StyleObject` | — | Atomic CSS on each item |
-| `activeItemStyles` | `StyleObject` | — | Styles for keyboard/hover active item |
-| `disabledItemStyles` | `StyleObject` | — | Styles for disabled items |
-| `onSelect` | `(item) => void` | — | Called when any item is selected |
-
-#### DropdownItem
-
-| Property | Type | Description |
-|---|---|---|
-| `label` | `string` | Display text |
-| `value` | `string` | Optional value for `onSelect` |
-| `disabled` | `boolean` | Prevents selection |
-| `onSelect` | `() => void` | Per-item callback |
-
-#### Return values
-
-| Property | Type | Description |
-|---|---|---|
-| `open` | `() => void` | Open the dropdown |
-| `close` | `() => void` | Close the dropdown |
-| `toggle` | `() => void` | Toggle open/close |
-| `isOpen` | `Ref<boolean>` | Whether dropdown is open |
-| `dispose` | `() => void` | Clean up listeners |
-
-## Project structure
-```
-my-app/
-├── server.ts
-├── deno.json
-└── src/
-    ├── app/
-    │   ├── App.ts
-    │   ├── tokens.ts
-    │   └── views/
-    │       ├── HomeView.ts
-    │       └── dashboard/
-    │           └── DashboardView.ts
-    └── runtime/
-        └── index.ts
-```
-
-## Versioning
-```bash
-deno run --allow-read --allow-write scripts/bump.ts v0.2.0
-```
 
 ## License
 

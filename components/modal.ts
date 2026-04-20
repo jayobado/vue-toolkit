@@ -1,27 +1,27 @@
-import { ref } from 'vue'
-import type { Ref } from 'vue'
-import { css } from '../css.ts'
-import type { StyleObject } from '../css.ts'
+import { ref, effectScope } from 'vue'
+import type { Ref, EffectScope } from 'vue'
 import { useEscapeKey } from '../primitives/escape-key.ts'
 import { useFocusTrap } from '../primitives/focus-trap.ts'
 import { useScrollLock } from '../primitives/scroll-lock.ts'
+import { enter, leave } from '../primitives/transition.ts'
+import type { TransitionClasses } from '../primitives/transition.ts'
 
 export interface ModalOptions {
 	class?: string
-	styles?: StyleObject
 	backdropClass?: string
-	backdropStyles?: StyleObject
 	closeOnBackdrop?: boolean
 	closeOnEscape?: boolean
 	trapFocus?: boolean
 	lockScroll?: boolean
+	transition?: TransitionClasses
+	backdropTransition?: TransitionClasses
 	onOpen?: () => void
 	onClose?: () => void
 }
 
 export interface ModalReturn {
 	open: () => void
-	close: () => void
+	close: () => Promise<void>
 	isOpen: Ref<boolean>
 	backdropEl: Ref<HTMLElement | null>
 	contentEl: Ref<HTMLElement | null>
@@ -33,17 +33,16 @@ export function useModal(options?: ModalOptions): ModalReturn {
 	const backdropEl = ref<HTMLElement | null>(null)
 	const contentEl = ref<HTMLElement | null>(null)
 
-	let cleanups: Array<() => void> = []
+	let scope: EffectScope | null = null
 
 	function open(): void {
 		if (isOpen.value) return
 		isOpen.value = true
 
+		scope = effectScope()
+
 		const backdrop = document.createElement('div')
-		const backdropClasses: string[] = []
-		if (opts.backdropClass) backdropClasses.push(opts.backdropClass)
-		if (opts.backdropStyles) backdropClasses.push(css(opts.backdropStyles))
-		if (backdropClasses.length) backdrop.className = backdropClasses.join(' ')
+		if (opts.backdropClass) backdrop.className = opts.backdropClass
 
 		if (opts.closeOnBackdrop !== false) {
 			backdrop.addEventListener('pointerdown', (e) => {
@@ -54,10 +53,7 @@ export function useModal(options?: ModalOptions): ModalReturn {
 		const wrapper = document.createElement('div')
 		wrapper.setAttribute('role', 'dialog')
 		wrapper.setAttribute('aria-modal', 'true')
-		const wrapperClasses: string[] = []
-		if (opts.class) wrapperClasses.push(opts.class)
-		if (opts.styles) wrapperClasses.push(css(opts.styles))
-		if (wrapperClasses.length) wrapper.className = wrapperClasses.join(' ')
+		if (opts.class) wrapper.className = opts.class
 
 		backdrop.appendChild(wrapper)
 		document.body.appendChild(backdrop)
@@ -65,27 +61,31 @@ export function useModal(options?: ModalOptions): ModalReturn {
 		backdropEl.value = backdrop
 		contentEl.value = wrapper
 
-		if (opts.closeOnEscape !== false) {
-			cleanups.push(useEscapeKey(close))
-		}
+		scope.run(() => {
+			if (opts.closeOnEscape !== false) useEscapeKey(close)
+			if (opts.trapFocus !== false) useFocusTrap(contentEl as Ref<HTMLElement | null>)
+			if (opts.lockScroll !== false) useScrollLock()
+		})
 
-		if (opts.trapFocus !== false) {
-			cleanups.push(useFocusTrap(contentEl as Ref<HTMLElement | null>))
-		}
-
-		if (opts.lockScroll !== false) {
-			cleanups.push(useScrollLock())
-		}
+		if (opts.backdropTransition) enter(backdrop, opts.backdropTransition)
+		if (opts.transition) enter(wrapper, opts.transition)
 
 		opts.onOpen?.()
 	}
 
-	function close(): void {
+	async function close(): Promise<void> {
 		if (!isOpen.value) return
 		isOpen.value = false
 
-		cleanups.forEach(fn => fn())
-		cleanups = []
+		if (opts.transition && contentEl.value) {
+			await leave(contentEl.value, opts.transition)
+		}
+		if (opts.backdropTransition && backdropEl.value) {
+			await leave(backdropEl.value, opts.backdropTransition)
+		}
+
+		scope?.stop()
+		scope = null
 
 		if (backdropEl.value?.parentNode) {
 			backdropEl.value.parentNode.removeChild(backdropEl.value)

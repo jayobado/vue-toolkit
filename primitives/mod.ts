@@ -5,6 +5,9 @@ export { useEscapeKey } from './escape-key.ts'
 export { useFocusTrap } from './focus-trap.ts'
 export { useScrollLock } from './scroll-lock.ts'
 
+export { enter, leave } from './transition.ts'
+export type { TransitionClasses } from './transition.ts'
+
 export { computePosition } from './position.ts'
 export type { Placement, PositionOptions } from './position.ts'
 
